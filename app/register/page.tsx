@@ -18,7 +18,25 @@ export default function RegisterPage() {
       return;
     }
 
-    console.log(data);
+    const user = data.user;
+
+    if (user) {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert([
+          {
+            id: user.id,
+            email: user.email,
+            role: "user",
+          },
+        ]);
+
+      if (profileError) {
+        alert(profileError.message);
+        return;
+      }
+    }
+
     alert("Registration successful!");
   };
 
