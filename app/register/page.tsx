@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -42,7 +42,7 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen bg-blue-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-blue-100 p-8">
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg border border-blue-100 p-16">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-blue-900">
             CMS Platform
@@ -59,21 +59,20 @@ export default function RegisterPage() {
 
         <div className="space-y-4">
           <input
-            type="email"
-            placeholder="Enter your email"
-            className="w-full p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+  type="email"
+  placeholder="Enter your email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
+/>
 
-          <input
-            type="password"
-            placeholder="Create a password"
-            className="w-full p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
+<input
+  type="password"
+  placeholder="Enter your password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
+/>
           <button
             onClick={handleRegister}
             className="w-full bg-blue-700 hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition"
@@ -84,12 +83,11 @@ export default function RegisterPage() {
 
         <p className="text-center mt-6 text-slate-500">
           Already have an account?
-          <a
-            href="/login"
-            className="text-blue-700 font-medium hover:underline ml-1"
-          >
+          
+          <Link href="/login">
             Login
-          </a>
+          </Link>
+          
         </p>
       </div>
     </main>
