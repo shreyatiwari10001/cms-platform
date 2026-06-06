@@ -19,12 +19,27 @@ export default function CreateArticlePage() {
   const [ethicsStatement, setEthicsStatement] = useState("");
   const [acknowledgements, setAcknowledgements] = useState("");
 
+  const [saving, setSaving] = useState(false);
+
   const handleSaveDraft = async () => {
+    if (!title.trim()) {
+      alert("Article title is required");
+      return;
+    }
+
+    if (!abstract.trim()) {
+      alert("Abstract is required");
+      return;
+    }
+
+    setSaving(true);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
+      setSaving(false);
       alert("Please login first");
       return;
     }
@@ -49,10 +64,12 @@ export default function CreateArticlePage() {
     ]);
 
     if (error) {
+      setSaving(false);
       alert(error.message);
       return;
     }
 
+    setSaving(false);
     alert("Draft saved successfully!");
   };
 
@@ -153,9 +170,10 @@ export default function CreateArticlePage() {
 
           <button
             onClick={handleSaveDraft}
-            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-lg"
+            disabled={saving}
+            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-lg disabled:opacity-50"
           >
-            Save Draft
+            {saving ? "Saving..." : "Save Draft"}
           </button>
         </div>
       </div>

@@ -38,6 +38,27 @@ export default function MyArticlesPage() {
     setLoading(false);
   };
 
+  const deleteArticle = async (id: string) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this draft?"
+    );
+
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("research_articles")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert("Draft deleted successfully!");
+    fetchArticles();
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-blue-50 p-8">
@@ -75,11 +96,27 @@ export default function MyArticlesPage() {
                   {new Date(article.created_at).toLocaleString()}
                 </p>
 
-                <Link href={`/edit-articles/${article.id}`}>
-                  <button className="mt-4 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
-                    Edit
+                {article.updated_at && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Last Updated:{" "}
+                    {new Date(article.updated_at).toLocaleString()}
+                  </p>
+                )}
+
+                <div className="flex gap-2 mt-4">
+                  <Link href={`/edit-articles/${article.id}`}>
+                    <button className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                      Edit
+                    </button>
+                  </Link>
+
+                  <button
+                    onClick={() => deleteArticle(article.id)}
+                    className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg"
+                  >
+                    Delete
                   </button>
-                </Link>
+                </div>
               </div>
             ))}
           </div>

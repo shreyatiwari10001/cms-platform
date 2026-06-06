@@ -9,6 +9,7 @@ export default function EditArticlePage() {
   const articleId = params.id as string;
 
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -62,6 +63,18 @@ export default function EditArticlePage() {
   };
 
   const updateArticle = async () => {
+    if (!title.trim()) {
+      alert("Article title is required");
+      return;
+    }
+
+    if (!abstract.trim()) {
+      alert("Abstract is required");
+      return;
+    }
+
+    setUpdating(true);
+
     const { error } = await supabase
       .from("research_articles")
       .update({
@@ -82,10 +95,12 @@ export default function EditArticlePage() {
       .eq("id", articleId);
 
     if (error) {
+      setUpdating(false);
       alert(error.message);
       return;
     }
 
+    setUpdating(false);
     alert("Article updated successfully!");
   };
 
@@ -194,9 +209,10 @@ export default function EditArticlePage() {
 
           <button
             onClick={updateArticle}
-            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-lg"
+            disabled={updating}
+            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-lg disabled:opacity-50"
           >
-            Update Article
+            {updating ? "Updating..." : "Update Article"}
           </button>
         </div>
       </div>
