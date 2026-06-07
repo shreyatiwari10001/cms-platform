@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function ProfilePage() {
+  const router = useRouter();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [designation, setDesignation] = useState("");
@@ -11,21 +14,50 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [profileImage, setProfileImage] = useState("");
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      if (!email) {
+        setEmail(user.email || "");
+      }
+
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (data) {
+        setName(data.name || "");
+        setEmail(data.email || "");
+        setDesignation(data.designation || "");
+        setAffiliation(data.affiliation || "");
+        setBio(data.bio || "");
+        setProfileImage(data.profile_image || "");
+      }
+    };
+
+    loadProfile();
+  }, []);
+
   const handleSaveProfile = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
-    console.log("USER:", user);
 
     if (!user) {
       alert("Please login first");
       return;
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("author_profiles")
-      .insert([
+      .upsert(
         {
           user_id: user.id,
           name,
@@ -35,25 +67,26 @@ export default function ProfilePage() {
           bio,
           profile_image: profileImage,
         },
-      ])
-      .select();
-
-    console.log("DATA:", data);
+        {
+          onConflict: "user_id",
+        }
+      );
 
     if (error) {
-      console.log("ERROR:", error);
-      alert(JSON.stringify(error, null, 2));
+      alert(error.message);
       return;
     }
 
     alert("Profile saved successfully!");
+
+    router.push("/dashboard-layout/author_dashboard");
   };
 
   return (
     <main className="min-h-screen bg-blue-50 flex items-center justify-center px-4">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-2xl">
         <h1 className="text-3xl font-bold text-blue-900 mb-6">
-          Author Profile
+          Edit Profile
         </h1>
 
         <div className="space-y-4">

@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +10,9 @@ export default function EditArticlePage() {
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+
+  const [articleFound, setArticleFound] = useState(true);
+  const [status, setStatus] = useState("");
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -27,40 +30,58 @@ export default function EditArticlePage() {
   const [acknowledgements, setAcknowledgements] = useState("");
 
   useEffect(() => {
-    fetchArticle();
-  }, []);
+    if (!articleId) return;
 
-  const fetchArticle = async () => {
-    const { data, error } = await supabase
-      .from("research_articles")
-      .select("*")
-      .eq("id", articleId)
-      .single();
+    const loadArticle = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+        if (!user) {
+          setLoading(false);
+          return;
+        }
 
-    if (data) {
-      setTitle(data.title || "");
-      setSubtitle(data.subtitle || "");
-      setAbstract(data.abstract || "");
-      setKeywords(data.keywords || "");
+        const { data, error } = await supabase
+          .from("research_articles")
+          .select("*")
+          .eq("id", articleId)
+          .eq("user_id", user.id)
+          .single();
 
-      setIntroduction(data.introduction || "");
-      setMethods(data.methods || "");
-      setResults(data.results || "");
-      setDiscussion(data.discussion || "");
-      setConclusion(data.conclusion || "");
+        if (error || !data) {
+          setArticleFound(false);
+          setLoading(false);
+          return;
+        }
 
-      setFunding(data.funding || "");
-      setEthicsStatement(data.ethics_statement || "");
-      setAcknowledgements(data.acknowledgements || "");
-    }
+        setStatus(data.status || "");
 
-    setLoading(false);
-  };
+        setTitle(data.title || "");
+        setSubtitle(data.subtitle || "");
+        setAbstract(data.abstract || "");
+        setKeywords(data.keywords || "");
+
+        setIntroduction(data.introduction || "");
+        setMethods(data.methods || "");
+        setResults(data.results || "");
+        setDiscussion(data.discussion || "");
+        setConclusion(data.conclusion || "");
+
+        setFunding(data.funding || "");
+        setEthicsStatement(data.ethics_statement || "");
+        setAcknowledgements(data.acknowledgements || "");
+      } catch (err) {
+        console.error(err);
+        setArticleFound(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadArticle();
+  }, [articleId]);
 
   const updateArticle = async () => {
     if (!title.trim()) {
@@ -75,39 +96,97 @@ export default function EditArticlePage() {
 
     setUpdating(true);
 
-    const { error } = await supabase
-      .from("research_articles")
-      .update({
-        title,
-        subtitle,
-        abstract,
-        keywords,
-        introduction,
-        methods,
-        results,
-        discussion,
-        conclusion,
-        funding,
-        ethics_statement: ethicsStatement,
-        acknowledgements,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", articleId);
+    try {
+      const { error } = await supabase
+        .from("research_articles")
+        .update({
+          title,
+          subtitle,
+          abstract,
+          keywords,
+          introduction,
+          methods,
+          results,
+          discussion,
+          conclusion,
+          funding,
+          ethics_statement: ethicsStatement,
+          acknowledgements,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", articleId);
 
-    if (error) {
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      alert("Article updated successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update article");
+    } finally {
       setUpdating(false);
-      alert(error.message);
-      return;
     }
-
-    setUpdating(false);
-    alert("Article updated successfully!");
   };
 
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         Loading...
+      </main>
+    );
+  }
+
+  if (!articleFound) {
+    return (
+     
+        <div className="text-center py-10">
+        <h2 className="text-xl font-semibold">
+            No Articles Found
+        </h2>
+
+        <p className="text-gray-500 mt-2">
+           You haven&apos;t created any articles yet.
+        </p>
+
+      <Link href="/dashboard-layout/author_dashboard/create-article">
+      <button className="mt-4 bg-blue-700 text-white px-6 py-2 rounded-lg">
+        Create New Article
+      </button>
+    </Link>
+  </div>
+    );
+  }
+
+  if (status === "pending") {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-yellow-50">
+        <div className="bg-white p-8 rounded-xl shadow-lg text-center">
+          <h2 className="text-2xl font-bold text-yellow-700 mb-4">
+            Article Pending Review
+          </h2>
+
+          <p>
+            This article is currently under review by the admin.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "approved") {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-green-50">
+        <div className="bg-white p-8 rounded-xl shadow-lg text-center">
+          <h2 className="text-2xl font-bold text-green-700 mb-4">
+            Article Approved
+          </h2>
+
+          <p>
+            This article has already been approved and cannot be edited.
+          </p>
+        </div>
       </main>
     );
   }
