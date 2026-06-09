@@ -11,20 +11,24 @@ export default function AuthorRequestPage() {
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-
       setIsLoggedIn(!!user);
     };
-
     checkUser();
   }, []);
 
   const handleSubmit = async () => {
+    if (!qualification.trim() || !researchArea.trim() || !reason.trim()) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
     setLoading(true);
 
     const {
@@ -36,7 +40,6 @@ export default function AuthorRequestPage() {
       return;
     }
 
-    // Check if user already has a pending request
     const { data: existingRequest, error: checkError } = await supabase
       .from("author_requests")
       .select("id")
@@ -73,18 +76,7 @@ export default function AuthorRequestPage() {
       return;
     }
 
-    alert("Author request submitted successfully!Please wait for admin approval.");
-    router.push("/dashboard");
-    <Link
-  href="/dashboard-layout/dashboard"
-  className="block text-center bg-blue-700 text-white p-3 rounded-lg"
->
-  Back to Dashboard
-</Link>
-
-    setQualification("");
-    setResearchArea("");
-    setReason("");
+    setSubmitted(true);
   };
 
   if (isLoggedIn === null) {
@@ -102,16 +94,37 @@ export default function AuthorRequestPage() {
           <h1 className="text-3xl font-bold text-blue-900 mb-4">
             Login Required
           </h1>
-
           <p className="text-slate-600 mb-6">
             You must be logged in to submit an author access request.
           </p>
-
           <Link
             href="/login"
             className="inline-block bg-blue-700 hover:bg-blue-600 text-white font-medium px-6 py-3 rounded-lg transition"
           >
             Login
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <main className="min-h-screen bg-blue-50 flex items-center justify-center px-4">
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-blue-100 text-center max-w-md w-full">
+          <div className="text-5xl mb-4">⏳</div>
+          <h1 className="text-2xl font-bold text-blue-900 mb-3">
+            Request Submitted!
+          </h1>
+          <p className="text-slate-600 mb-6">
+            Your author access request has been submitted. Please wait for
+            admin approval. You will get access once approved.
+          </p>
+          <Link
+            href="/dashboard-layout/dashboard"
+            className="inline-block bg-blue-700 hover:bg-blue-600 text-white font-medium px-6 py-3 rounded-lg transition"
+          >
+            Back to Dashboard
           </Link>
         </div>
       </main>
@@ -124,11 +137,9 @@ export default function AuthorRequestPage() {
         <h1 className="text-3xl font-bold text-blue-900 text-center mb-2">
           Author Access Request
         </h1>
-
         <p className="text-center text-slate-500 mb-6">
           Submit your details to become an author
         </p>
-
         <div className="space-y-4">
           <input
             type="text"
@@ -137,7 +148,6 @@ export default function AuthorRequestPage() {
             onChange={(e) => setQualification(e.target.value)}
             className="w-full p-3 border border-slate-300 rounded-lg"
           />
-
           <input
             type="text"
             placeholder="Research Area"
@@ -145,7 +155,6 @@ export default function AuthorRequestPage() {
             onChange={(e) => setResearchArea(e.target.value)}
             className="w-full p-3 border border-slate-300 rounded-lg"
           />
-
           <textarea
             placeholder="Why do you want author access?"
             value={reason}
@@ -153,16 +162,13 @@ export default function AuthorRequestPage() {
             className="w-full p-3 border border-slate-300 rounded-lg"
             rows={4}
           />
-
           <button
             onClick={handleSubmit}
             disabled={loading}
             className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-lg transition disabled:bg-gray-400"
           >
             {loading ? "Submitting..." : "Submit Request"}
-          
           </button>
-       
         </div>
       </div>
     </main>

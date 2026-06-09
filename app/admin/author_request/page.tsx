@@ -28,9 +28,6 @@ export default function AuthorRequestsPage() {
       .eq("status", "pending")
       .order("created_at", { ascending: false });
 
-    console.log("DATA:", data);
-    console.log("ERROR:", error);
-
     if (!error && data) {
       setRequests(data);
     }
@@ -42,10 +39,7 @@ export default function AuthorRequestsPage() {
     const initializePage = async () => {
       const role = await getCurrentUserRole();
 
-      if (
-        role !== "cms_admin" &&
-        role !== "super_admin"
-      ) {
+      if (role !== "cms_admin" && role !== "super_admin") {
         router.push("/login");
         return;
       }
@@ -61,28 +55,20 @@ export default function AuthorRequestsPage() {
     requestId: number,
     userId: string
   ) => {
-    const { error: requestError } = await supabase
-      .from("author_requests")
-      .update({ status: "approved" })
-      .eq("id", requestId);
+    const response = await fetch("/api/approve-author", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId, userId }),
+    });
 
-    if (requestError) {
-      alert(requestError.message);
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert("Error: " + result.error);
       return;
     }
 
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ role: "author" })
-      .eq("id", userId);
-
-    if (profileError) {
-      alert(profileError.message);
-      return;
-    }
-
-    alert("Request approved");
-
+    alert("✅ Request approved aur role updated!");
     fetchRequests();
   };
 
@@ -98,7 +84,6 @@ export default function AuthorRequestsPage() {
     }
 
     alert("Request rejected");
-
     fetchRequests();
   };
 
@@ -159,10 +144,7 @@ export default function AuthorRequestsPage() {
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={() =>
-                      approveRequest(
-                        request.id,
-                        request.user_id
-                      )
+                      approveRequest(request.id, request.user_id)
                     }
                     className="bg-green-600 text-white px-4 py-2 rounded-lg"
                   >
@@ -170,9 +152,7 @@ export default function AuthorRequestsPage() {
                   </button>
 
                   <button
-                    onClick={() =>
-                      rejectRequest(request.id)
-                    }
+                    onClick={() => rejectRequest(request.id)}
                     className="bg-red-600 text-white px-4 py-2 rounded-lg"
                   >
                     Reject

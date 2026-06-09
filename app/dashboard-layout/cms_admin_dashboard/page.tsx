@@ -13,7 +13,7 @@ export default function CMSAdminDashboard() {
     const checkAccess = async () => {
       const role = await getCurrentUserRole();
 
-      if (role !== "cms_admin") {
+      if (role !== "cms_admin" && role !== "super_admin") {
         router.push("/login");
         return;
       }
@@ -45,6 +45,13 @@ export default function CMSAdminDashboard() {
             className="block bg-blue-700 text-white p-3 rounded-lg text-center"
           >
             Manage Writer Requests
+          </Link>
+
+          <Link
+            href="/dashboard-layout/cms_admin_dashboard/review-articles"
+            className="block bg-green-600 text-white p-3 rounded-lg text-center"
+          >
+            Review Articles
           </Link>
 
           <Link

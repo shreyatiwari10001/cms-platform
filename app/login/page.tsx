@@ -29,7 +29,6 @@ export default function LoginPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    console.log("Logged in user:", user);
 
     if (!user) {
       setLoading(false);
@@ -37,48 +36,38 @@ export default function LoginPage() {
       return;
     }
 
+    // ✅ Fresh fetch — cache se nahi, seedha DB se
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .maybeSingle();
+      .single();
 
     console.log("User ID:", user.id);
     console.log("Profile:", profile);
-    console.log("Profile Error:", profileError);
+    console.log("Role:", profile?.role);
 
-    if (!profile) {
-      alert("Profile not found");
+    if (profileError || !profile) {
+      alert("Profile not found: " + profileError?.message);
       setLoading(false);
       return;
     }
 
-    
+    const role = profile.role;
 
-    switch (profile?.role) {
-  case "author":
-    router.push("/dashboard-layout/author_dashboard");
-    break;
-
-  case "editor_approver":
-    router.push("/dashboard-layout/editor_dashboard");
-    break;
-
-  case "publisher":
-    router.push("/dashboard-layout/publisher_dashboard");
-    break;
-
-  case "cms_admin":
-    router.push("/dashboard-layout/cms_admin_dashboard");
-    break;
-
-  case "super_admin":
-    router.push("/dashboard-layout/super_admin_dashboard");
-    break;
-
-  default:
-    router.push("/dashboard-layout/dashboard");
-}
+    if (role === "author") {
+      router.push("/dashboard-layout/author_dashboard");
+    } else if (role === "editor_approver") {
+      router.push("/dashboard-layout/editor_dashboard");
+    } else if (role === "publisher") {
+      router.push("/dashboard-layout/publisher_dashboard");
+    } else if (role === "cms_admin") {
+      router.push("/dashboard-layout/cms_admin_dashboard");
+    } else if (role === "super_admin") {
+      router.push("/dashboard-layout/super_admin_dashboard");
+    } else {
+      router.push("/dashboard-layout/dashboard");
+    }
 
     setLoading(false);
   };
@@ -90,11 +79,9 @@ export default function LoginPage() {
           <h1 className="text-4xl font-bold text-blue-900">
             CMS Platform
           </h1>
-
           <p className="text-blue-600 italic mt-2">
             Research Publishing System
           </p>
-
           <p className="text-slate-500 mt-4">
             Sign in to your account
           </p>
@@ -108,7 +95,6 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             className="w-full p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-
           <input
             type="password"
             placeholder="Enter your password"
@@ -116,7 +102,6 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-
           <button
             onClick={handleLogin}
             disabled={loading}
