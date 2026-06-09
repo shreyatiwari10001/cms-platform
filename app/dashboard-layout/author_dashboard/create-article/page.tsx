@@ -59,7 +59,7 @@ export default function CreateArticlePage() {
         funding,
         ethics_statement: ethicsStatement,
         acknowledgements,
-        status: "submitted",
+        status: "draft",
       },
     ]);
 
