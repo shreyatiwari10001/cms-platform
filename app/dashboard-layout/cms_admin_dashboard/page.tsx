@@ -41,7 +41,7 @@ export default function CMSAdminDashboard() {
 
         <div className="space-y-3">
           <Link
-            href="/admin/author_request"
+            href="/dashboard-layout/cms_admin_dashboard/author_request"
             className="block bg-blue-700 text-white p-3 rounded-lg text-center"
           >
             Manage Writer Requests
@@ -60,6 +60,12 @@ export default function CMSAdminDashboard() {
           >
             Manage Users
           </Link>
+          <button
+  onClick={() => router.push("/dashboard-layout/cms_admin_dashboard/review-articles")}
+  className="bg-purple-600 text-white px-4 py-2 rounded-lg"
+>
+  Manage Articles
+</button>
         </div>
       </div>
     </main>

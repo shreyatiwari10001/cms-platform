@@ -21,7 +21,8 @@ type Article = {
   acknowledgements: string | null;
   status:
     | "draft"
-    | "submitted"
+    | "changes_requested"
+    | "approved"
     | "under_review"
     | "published"
     | "rejected";
@@ -106,7 +107,7 @@ export default function MyArticlesPage() {
       const { error } = await supabase
         .from("research_articles")
         .update({
-          status: "submitted",
+          status: "under_review",
           updated_at: new Date().toISOString(),
         })
         .eq("id", id);
@@ -120,7 +121,7 @@ export default function MyArticlesPage() {
       setArticles((prev) =>
         prev.map((article) =>
           article.id === id
-            ? { ...article, status: "submitted" }
+            ? { ...article, status: "under_review" }
             : article
         )
       );
@@ -136,12 +137,14 @@ export default function MyArticlesPage() {
     switch (status) {
       case "draft":
         return "bg-gray-100 text-gray-700";
-      case "submitted":
-        return "bg-blue-100 text-blue-700";
+      case "changes_requested":
+        return "bg-orange-100 text-orange-700";
       case "under_review":
         return "bg-yellow-100 text-yellow-700";
       case "published":
         return "bg-green-100 text-green-700";
+      case "approved":
+        return "bg-blue-100 text-blue-700";
       case "rejected":
         return "bg-red-100 text-red-700";
       default:
@@ -198,19 +201,27 @@ export default function MyArticlesPage() {
                     )}
 
                     <div className="mt-3">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          article.status
-                        )}`}
-                      >
-                        {article.status.replace("_", " ")}
-                      </span>
-                    </div>
+  <span
+    className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+      article.status
+    )}`}
+  >
+    {article.status.replace("_", " ")}
+  </span>
+</div>
 
-                    <p className="text-sm text-gray-500 mt-3">
-                      Created:{" "}
-                      {new Date(article.created_at).toLocaleString()}
-                    </p>
+{article.status === "changes_requested" && (
+  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+    <p className="text-orange-700 font-medium">
+      ⚠️ Admin requested changes. Please update and resubmit.
+    </p>
+  </div>
+)}
+
+<p className="text-sm text-gray-500 mt-3">
+  Created:{" "}
+  {new Date(article.created_at).toLocaleString()}
+</p>
 
                     {article.updated_at && (
                       <p className="text-sm text-gray-500 mt-1">
@@ -221,16 +232,17 @@ export default function MyArticlesPage() {
                   </div>
 
                   <div className="flex gap-2 flex-wrap">
-                    {/* Edit — sirf draft pe */}
-                    {article.status === "draft" && (
-                      <Link
-                        href={`/dashboard-layout/author_dashboard/edit-article/${article.id}`}
-                      >
-                        <button className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
-                          Edit
-                        </button>
-                      </Link>
-                    )}
+                    {/* Edit — sirf draft aur changes requested pe */}
+                    {(article.status === "draft" ||
+  article.status === "changes_requested") && (
+  <Link
+    href={`/dashboard-layout/author_dashboard/edit-article/${article.id}`}
+  >
+    <button className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+      Edit
+    </button>
+  </Link>
+)}
 
                     {/* Submit — sirf draft pe */}
                     {article.status === "draft" && (

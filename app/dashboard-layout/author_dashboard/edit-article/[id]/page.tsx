@@ -28,7 +28,14 @@ export default function EditArticlePage() {
   const [funding, setFunding] = useState("");
   const [ethicsStatement, setEthicsStatement] = useState("");
   const [acknowledgements, setAcknowledgements] = useState("");
-
+  
+  const [comments, setComments] = useState<
+  {
+    id: string;
+    comment: string;
+    created_at: string;
+  }[]
+>([]);
   useEffect(() => {
     if (!articleId) return;
 
@@ -72,17 +79,26 @@ export default function EditArticlePage() {
         setFunding(data.funding || "");
         setEthicsStatement(data.ethics_statement || "");
         setAcknowledgements(data.acknowledgements || "");
+        const { data: commentsData } = await supabase
+        .from("review_comments")
+        .select("*")
+        .eq("article_id", articleId)
+        .order("created_at", { ascending: false });
+
+      setComments(commentsData || []);
+        
       } catch (err) {
         console.error(err);
         setArticleFound(false);
       } finally {
         setLoading(false);
       }
+      
     };
-
+    
     loadArticle();
   }, [articleId]);
-
+  
   const updateArticle = async () => {
     if (!title.trim()) {
       alert("Article title is required");
@@ -129,7 +145,50 @@ export default function EditArticlePage() {
       setUpdating(false);
     }
   };
+  const resubmitArticle = async () => {
+  setUpdating(true);
 
+  try {
+    const { error } = await supabase
+      .from("research_articles")
+      .update({
+        status: "under_review",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", articleId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    const { data: latestVersion } = await supabase
+      .from("article_versions")
+      .select("version_number")
+      .eq("article_id", articleId)
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextVersion =
+      (latestVersion?.version_number || 0) + 1;
+
+    await supabase
+      .from("article_versions")
+      .insert({
+        article_id: articleId,
+        version_number: nextVersion,
+      });
+
+    alert("✅ Article resubmitted for review");
+    setStatus("under_review");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to resubmit article");
+  } finally {
+    setUpdating(false);
+  }
+};
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -159,21 +218,22 @@ export default function EditArticlePage() {
     );
   }
 
-  if (status === "pending") {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-yellow-50">
-        <div className="bg-white p-8 rounded-xl shadow-lg text-center">
-          <h2 className="text-2xl font-bold text-yellow-700 mb-4">
-            Article Pending Review
-          </h2>
+  if (status === "under_review") {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-yellow-50">
+      <div className="bg-white p-8 rounded-xl shadow-lg text-center">
+        <h2 className="text-2xl font-bold text-yellow-700 mb-4">
+          Under Review
+        </h2>
 
-          <p>
-            This article is currently under review by the admin.
-          </p>
-        </div>
-      </main>
-    );
-  }
+        <p>
+          Your article is currently being reviewed by CMS Admin.
+        </p>
+      </div>
+    </main>
+  );
+}
+  
 
   if (status === "approved") {
     return (
@@ -190,14 +250,66 @@ export default function EditArticlePage() {
       </main>
     );
   }
+  if (status === "published") {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-green-50">
+      <div className="bg-white p-8 rounded-xl shadow-lg text-center">
+        <h2 className="text-2xl font-bold text-green-700 mb-4">
+          Published
+        </h2>
 
+        <p>
+          Your article has been published.
+        </p>
+      </div>
+    </main>
+  );
+}
+if (status === "rejected") {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-red-50">
+      <div className="bg-white p-8 rounded-xl shadow-lg text-center">
+        <h2 className="text-2xl font-bold text-red-700 mb-4">
+          Rejected
+        </h2>
+
+        <p>
+          Your article was rejected by the CMS Admin.
+        </p>
+      </div>
+    </main>
+  );
+}
   return (
     <main className="min-h-screen bg-blue-50 py-10 px-4">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold text-blue-900 mb-6">
           Edit Article
         </h1>
+        {comments.length > 0 && (
+  <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-xl p-5">
+    <h2 className="text-xl font-bold text-yellow-800 mb-4">
+      Review Comments
+    </h2>
 
+    <div className="space-y-3">
+      {comments.map((comment) => (
+        <div
+          key={comment.id}
+          className="bg-white border rounded-lg p-4"
+        >
+          <p>{comment.comment}</p>
+
+          <p className="text-xs text-gray-500 mt-2">
+            {new Date(
+              comment.created_at
+            ).toLocaleString()}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
         <div className="space-y-5">
           <input
             type="text"
@@ -286,13 +398,25 @@ export default function EditArticlePage() {
             onChange={(e) => setAcknowledgements(e.target.value)}
           />
 
-          <button
-            onClick={updateArticle}
-            disabled={updating}
-            className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-lg disabled:opacity-50"
-          >
-            {updating ? "Updating..." : "Update Article"}
-          </button>
+          <div className="flex gap-4">
+  <button
+    onClick={updateArticle}
+    disabled={updating}
+    className="flex-1 bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-lg disabled:opacity-50"
+  >
+    {updating ? "Updating..." : "Update Article"}
+  </button>
+
+  {status === "changes_requested" && (
+    <button
+      onClick={resubmitArticle}
+      disabled={updating}
+      className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg"
+    >
+      Resubmit For Review
+    </button>
+  )}
+</div>
         </div>
       </div>
     </main>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserRole } from "@/lib/auth";
 
@@ -10,7 +10,7 @@ type Article = {
   user_id: string;
   title: string;
   subtitle: string | null;
-  abstract: string;
+  abstract: string | null;
   keywords: string | null;
   introduction: string | null;
   methods: string | null;
@@ -25,47 +25,79 @@ type Article = {
   updated_at: string | null;
 };
 
-export default function ArticleDetailPage() {
+type ReviewComment = {
+  id: number;
+  comment: string;
+  created_at: string;
+};
+
+type Version = {
+  id: number;
+  version_number: number;
+  created_at: string;
+};
+
+export default function ReviewArticlePage() {
   const router = useRouter();
   const params = useParams();
+
   const articleId = params.id as string;
 
   const [article, setArticle] = useState<Article | null>(null);
+  const [comments, setComments] = useState<ReviewComment[]>([]);
+  const [versions, setVersions] = useState<Version[]>([]);
+  const [newComment, setNewComment] = useState("");
+
   const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    const { data: articleData } = await supabase
+      .from("research_articles")
+      .select("*")
+      .eq("id", articleId)
+      .single();
+
+    const { data: commentsData } = await supabase
+      .from("review_comments")
+      .select("*")
+      .eq("article_id", articleId)
+      .order("created_at", { ascending: false });
+
+    const { data: versionsData } = await supabase
+      .from("article_versions")
+      .select("*")
+      .eq("article_id", articleId)
+      .order("version_number", { ascending: false });
+
+    setArticle(articleData);
+    setComments(commentsData || []);
+    setVersions(versionsData || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
     const init = async () => {
       const role = await getCurrentUserRole();
 
-      if (role !== "cms_admin" && role !== "super_admin") {
+      if (
+        role !== "cms_admin" &&
+        role !== "super_admin"
+      ) {
         router.push("/login");
         return;
       }
 
-      const { data, error } = await supabase
-        .from("research_articles")
-        .select("*")
-        .eq("id", articleId)
-        .single();
-
-      if (error || !data) {
-        alert("Article not found");
-        router.push("/dashboard-layout/cms_admin_dashboard/review-articles");
-        return;
-      }
-
-      setArticle(data);
-      setLoading(false);
+      await fetchData();
     };
 
     init();
-  }, [articleId, router]);
+  }, []);
 
-  const updateStatus = async (newStatus: string) => {
+  const updateStatus = async (status: string) => {
     const { error } = await supabase
       .from("research_articles")
       .update({
-        status: newStatus,
+        status,
         updated_at: new Date().toISOString(),
       })
       .eq("id", articleId);
@@ -75,166 +107,248 @@ export default function ArticleDetailPage() {
       return;
     }
 
-    alert(
-      newStatus === "under_review"
-        ? "✅ Article moved to Under Review"
-        : newStatus === "published"
-        ? "✅ Article Published!"
-        : "❌ Article Rejected"
-    );
-
-    router.push("/dashboard-layout/cms_admin_dashboard/review-articles");
+    alert(`Article moved to ${status}`);
+    await fetchData();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "submitted": return "bg-blue-100 text-blue-700";
-      case "under_review": return "bg-yellow-100 text-yellow-700";
-      case "published": return "bg-green-100 text-green-700";
-      case "rejected": return "bg-red-100 text-red-700";
-      default: return "bg-gray-100 text-gray-700";
-    }
+  const addComment = async () => {
+    if (!newComment.trim()) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+      .from("review_comments")
+      .insert({
+        article_id: articleId,
+        reviewer_id: user?.id,
+        comment: newComment,
+      });
+
+    if (error) {
+  console.log("FULL ERROR:", error);
+  alert(JSON.stringify(error, null, 2));
+  return;
+}
+
+    setNewComment("");
+    fetchData();
   };
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+      <main className="p-8">
+        <h1>Loading...</h1>
       </main>
     );
   }
 
-  if (!article) return null;
+  if (!article) {
+    return (
+      <main className="p-8">
+        <h1>Article not found</h1>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-blue-50 p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-slate-50 p-8">
+      <div className="max-w-6xl mx-auto">
 
-        {/* Back button */}
         <button
-          onClick={() => router.push("/dashboard-layout/cms_admin_dashboard/review-articles")}
-          className="mb-6 text-blue-700 hover:underline flex items-center gap-1"
+          onClick={() =>
+            router.push(
+              "/dashboard-layout/cms_admin_dashboard/review-articles"
+            )
+          }
+          className="mb-6 text-blue-700"
         >
-          ← Back to Review Articles
+          ← Back
         </button>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="bg-white p-8 rounded-xl shadow">
 
-          {/* Header */}
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-blue-900">
-                {article.title}
-              </h1>
-              {article.subtitle && (
-                <p className="text-gray-500 mt-1">{article.subtitle}</p>
-              )}
-              <span className={`mt-3 inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(article.status)}`}>
-                {article.status.replace("_", " ")}
-              </span>
-            </div>
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">
+              {article.title}
+            </h1>
+
+            <span className="px-3 py-1 rounded-full bg-slate-100">
+              {article.status}
+            </span>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-3 flex-wrap mb-8 pb-6 border-b border-slate-200">
-            {(article.status === "submitted" || article.status === "under_review") && (
+          {article.subtitle && (
+            <p className="mt-2 text-gray-500">
+              {article.subtitle}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-3 mt-6">
+
+            {article.status === "under_review" && (
               <>
-                {article.status === "submitted" && (
-                  <button
-                    onClick={() => updateStatus("under_review")}
-                    className="bg-yellow-500 hover:bg-yellow-400 text-white px-5 py-2 rounded-lg"
-                  >
-                    Start Review
-                  </button>
-                )}
                 <button
-                  onClick={() => updateStatus("published")}
-                  className="bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg"
+                  onClick={() =>
+                    updateStatus("changes_requested")
+                  }
+                  className="bg-orange-600 text-white px-4 py-2 rounded-lg"
                 >
-                  Publish
+                  Request Changes
                 </button>
+
                 <button
-                  onClick={() => updateStatus("rejected")}
-                  className="bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg"
+                  onClick={() =>
+                    updateStatus("approved")
+                  }
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg"
+                >
+                  Approve
+                </button>
+
+                <button
+                  onClick={() =>
+                    updateStatus("rejected")
+                  }
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg"
                 >
                   Reject
                 </button>
               </>
             )}
-          </div>
 
-          {/* Article content */}
-          <div className="space-y-6">
-            {article.abstract && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Abstract</h2>
-                <p className="text-slate-700 leading-relaxed">{article.abstract}</p>
-              </div>
-            )}
-            {article.keywords && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Keywords</h2>
-                <p className="text-slate-700">{article.keywords}</p>
-              </div>
-            )}
-            {article.introduction && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Introduction</h2>
-                <p className="text-slate-700 leading-relaxed">{article.introduction}</p>
-              </div>
-            )}
-            {article.methods && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Methods</h2>
-                <p className="text-slate-700 leading-relaxed">{article.methods}</p>
-              </div>
-            )}
-            {article.results && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Results</h2>
-                <p className="text-slate-700 leading-relaxed">{article.results}</p>
-              </div>
-            )}
-            {article.discussion && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Discussion</h2>
-                <p className="text-slate-700 leading-relaxed">{article.discussion}</p>
-              </div>
-            )}
-            {article.conclusion && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Conclusion</h2>
-                <p className="text-slate-700 leading-relaxed">{article.conclusion}</p>
-              </div>
-            )}
-            {article.funding && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Funding</h2>
-                <p className="text-slate-700">{article.funding}</p>
-              </div>
-            )}
-            {article.ethics_statement && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Ethics Statement</h2>
-                <p className="text-slate-700">{article.ethics_statement}</p>
-              </div>
-            )}
-            {article.acknowledgements && (
-              <div>
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Acknowledgements</h2>
-                <p className="text-slate-700">{article.acknowledgements}</p>
-              </div>
+            {article.status === "approved" && (
+              <button
+                onClick={() =>
+                  updateStatus("published")
+                }
+                className="bg-blue-700 text-white px-4 py-2 rounded-lg"
+              >
+                Publish
+              </button>
             )}
           </div>
 
-          {/* Timestamps */}
-          <div className="mt-8 pt-6 border-t border-slate-200 text-sm text-gray-500">
-            <p>Submitted: {new Date(article.created_at).toLocaleString()}</p>
-            {article.updated_at && (
-              <p>Last Updated: {new Date(article.updated_at).toLocaleString()}</p>
-            )}
+          <div className="space-y-8 mt-8">
+
+            <section>
+              <h2 className="font-bold text-xl mb-2">
+                Abstract
+              </h2>
+              <p>{article.abstract}</p>
+            </section>
+
+            <section>
+              <h2 className="font-bold text-xl mb-2">
+                Keywords
+              </h2>
+              <p>{article.keywords}</p>
+            </section>
+
+            <section>
+              <h2 className="font-bold text-xl mb-2">
+                Introduction
+              </h2>
+              <p>{article.introduction}</p>
+            </section>
+
+            <section>
+              <h2 className="font-bold text-xl mb-2">
+                Methods
+              </h2>
+              <p>{article.methods}</p>
+            </section>
+
+            <section>
+              <h2 className="font-bold text-xl mb-2">
+                Results
+              </h2>
+              <p>{article.results}</p>
+            </section>
+
+            <section>
+              <h2 className="font-bold text-xl mb-2">
+                Discussion
+              </h2>
+              <p>{article.discussion}</p>
+            </section>
+
+            <section>
+              <h2 className="font-bold text-xl mb-2">
+                Conclusion
+              </h2>
+              <p>{article.conclusion}</p>
+            </section>
+
           </div>
         </div>
+
+        <div className="bg-white p-6 rounded-xl shadow mt-8">
+          <h2 className="text-2xl font-bold mb-4">
+            Review Comments
+          </h2>
+
+          <textarea
+            value={newComment}
+            onChange={(e) =>
+              setNewComment(e.target.value)
+            }
+            rows={4}
+            className="w-full border rounded-lg p-3"
+            placeholder="Write review feedback..."
+          />
+
+          <button
+            onClick={addComment}
+            className="mt-3 bg-blue-700 text-white px-4 py-2 rounded-lg"
+          >
+            Add Comment
+          </button>
+
+          <div className="space-y-3 mt-6">
+            {comments.map((comment) => (
+              <div
+                key={comment.id}
+                className="border rounded-lg p-4"
+              >
+                <p>{comment.comment}</p>
+
+                <p className="text-xs text-gray-500 mt-2">
+                  {new Date(
+                    comment.created_at
+                  ).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow mt-8">
+          <h2 className="text-2xl font-bold mb-4">
+            Version History
+          </h2>
+
+          <div className="space-y-3">
+            {versions.map((version) => (
+              <div
+                key={version.id}
+                className="border rounded-lg p-4"
+              >
+                <div className="font-semibold">
+                  Version {version.version_number}
+                </div>
+
+                <div className="text-sm text-gray-500">
+                  {new Date(
+                    version.created_at
+                  ).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </main>
   );

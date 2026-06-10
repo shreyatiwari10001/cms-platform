@@ -18,19 +18,25 @@ type Article = {
 
 export default function ReviewArticlesPage() {
   const router = useRouter();
+
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingAccess, setCheckingAccess] = useState(true);
 
   const fetchArticles = async () => {
+    setLoading(true);
+
     const { data, error } = await supabase
       .from("research_articles")
       .select("*")
-      .eq("status", "submitted")
+      .not("status", "eq", "draft")
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      setArticles(data);
+    if (error) {
+      console.error(error);
+      alert(error.message);
+    } else {
+      setArticles(data || []);
     }
 
     setLoading(false);
@@ -40,7 +46,10 @@ export default function ReviewArticlesPage() {
     const init = async () => {
       const role = await getCurrentUserRole();
 
-      if (role !== "cms_admin" && role !== "super_admin") {
+      if (
+        role !== "cms_admin" &&
+        role !== "super_admin"
+      ) {
         router.push("/login");
         return;
       }
@@ -52,7 +61,10 @@ export default function ReviewArticlesPage() {
     init();
   }, [router]);
 
-  const updateStatus = async (id: string, newStatus: string) => {
+  const updateStatus = async (
+    id: string,
+    newStatus: string
+  ) => {
     const { error } = await supabase
       .from("research_articles")
       .update({
@@ -66,27 +78,36 @@ export default function ReviewArticlesPage() {
       return;
     }
 
-    alert(
-      newStatus === "under_review"
-        ? "✅ Article moved to Under Review"
-        : newStatus === "published"
-        ? "✅ Article Published!"
-        : "❌ Article Rejected"
-    );
+    if (newStatus === "changes_requested") {
+      alert("📝 Changes requested from author");
+    } else if (newStatus === "approved") {
+      alert("✅ Article approved");
+    } else if (newStatus === "published") {
+      alert("🎉 Article published");
+    } else if (newStatus === "rejected") {
+      alert("❌ Article rejected");
+    }
 
     fetchArticles();
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "submitted":
-        return "bg-blue-100 text-blue-700";
       case "under_review":
         return "bg-yellow-100 text-yellow-700";
+
+      case "changes_requested":
+        return "bg-orange-100 text-orange-700";
+
+      case "approved":
+        return "bg-blue-100 text-blue-700";
+
       case "published":
         return "bg-green-100 text-green-700";
+
       case "rejected":
         return "bg-red-100 text-red-700";
+
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -103,21 +124,32 @@ export default function ReviewArticlesPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+        <p>Loading articles...</p>
       </main>
     );
   }
 
   return (
     <main className="min-h-screen bg-blue-50 p-8">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold text-blue-900 mb-6">
-          Review Articles
-        </h1>
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-blue-900">
+            Review Articles
+          </h1>
+
+          <button
+            onClick={fetchArticles}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+          >
+            Refresh
+          </button>
+        </div>
 
         {articles.length === 0 ? (
           <div className="bg-white rounded-xl p-6 shadow text-center">
-            <p className="text-gray-500">No submitted articles to review</p>
+            <p className="text-gray-500">
+              No articles available for review
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -149,13 +181,14 @@ export default function ReviewArticlesPage() {
                     </div>
 
                     <p className="text-sm text-gray-500 mt-2">
-                      Submitted:{" "}
-                      {new Date(article.created_at).toLocaleString()}
+                      Created:{" "}
+                      {new Date(
+                        article.created_at
+                      ).toLocaleString()}
                     </p>
                   </div>
 
                   <div className="flex gap-2 flex-wrap">
-                    {/* Article detail dekhne ke liye */}
                     <button
                       onClick={() =>
                         router.push(
@@ -167,41 +200,57 @@ export default function ReviewArticlesPage() {
                       View
                     </button>
 
-                    {/* Under Review mein move karo */}
-                    {article.status === "submitted" && (
-                      <button
-                        onClick={() =>
-                          updateStatus(article.id, "under_review")
-                        }
-                        className="bg-yellow-500 hover:bg-yellow-400 text-white px-4 py-2 rounded-lg"
-                      >
-                        Start Review
-                      </button>
+                    {article.status === "under_review" && (
+                      <>
+                        <button
+                          onClick={() =>
+                            updateStatus(
+                              article.id,
+                              "changes_requested"
+                            )
+                          }
+                          className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg"
+                        >
+                          Request Changes
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            updateStatus(
+                              article.id,
+                              "approved"
+                            )
+                          }
+                          className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg"
+                        >
+                          Approve
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            updateStatus(
+                              article.id,
+                              "rejected"
+                            )
+                          }
+                          className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg"
+                        >
+                          Reject
+                        </button>
+                      </>
                     )}
 
-                    {/* Publish karo */}
-                    {(article.status === "submitted" ||
-                      article.status === "under_review") && (
+                    {article.status === "approved" && (
                       <button
                         onClick={() =>
-                          updateStatus(article.id, "published")
+                          updateStatus(
+                            article.id,
+                            "published"
+                          )
                         }
-                        className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg"
+                        className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
                       >
                         Publish
-                      </button>
-                    )}
-
-                    {/* Reject karo */}
-                    {(article.status === "submitted" ||
-                      article.status === "under_review") && (
-                      <button
-                        onClick={() =>
-                          updateStatus(article.id, "rejected")
-                        }
-                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg"
-                      >
-                        Reject
                       </button>
                     )}
                   </div>

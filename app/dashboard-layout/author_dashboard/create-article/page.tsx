@@ -86,7 +86,53 @@ export default function CreateArticlePage() {
     setSaving(false);
     alert("Draft saved successfully!");
   };
+  const handleSubmitReview = async () => {
+  if (!title.trim()) {
+    alert("Article title is required");
+    return;
+  }
 
+  if (!abstract.trim()) {
+    alert("Abstract is required");
+    return;
+  }
+
+  setSaving(true);
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("research_articles")
+    .insert([
+      {
+        user_id: user?.id,
+        title,
+        subtitle,
+        abstract,
+        keywords,
+        introduction,
+        methods,
+        results,
+        discussion,
+        conclusion,
+        funding,
+        ethics_statement: ethicsStatement,
+        acknowledgements,
+        status: "under_review",
+      },
+    ]);
+
+  setSaving(false);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert("Article submitted for review");
+};
   if (checkingAccess) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -184,6 +230,13 @@ export default function CreateArticlePage() {
           >
             {saving ? "Saving..." : "Save Draft"}
           </button>
+          <button
+  onClick={handleSubmitReview}
+  disabled={saving}
+  className="w-full bg-green-600 text-white py-3 rounded-lg"
+>
+  Submit For Review
+</button>
         </div>
       </div>
     </main>

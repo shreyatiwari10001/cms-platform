@@ -18,9 +18,11 @@ export default function AuthorDashboard() {
   const [loading, setLoading] = useState(true);
 
   const [stats, setStats] = useState<StatCard[]>([
-    { label: "Submitted", value: "0", icon: "📤" },
+    { label: "Draft", value: "0", icon: "📤" },
     { label: "Under Review", value: "0", icon: "🔍" },
-    { label: "Published", value: "0", icon: "✅" },
+    { label: "Changes Requested", value: "0", icon: "✏️" },
+    { label: "Approved", value: "0", icon: "✅" },
+    { label: "Published", value: "0", icon: "✅✅" },
     { label: "Rejected", value: "0", icon: "❌" },
   ]);
 
@@ -76,11 +78,14 @@ export default function AuthorDashboard() {
           console.error(error);
         }
 
-        const submitted =
+        const draft =
           articles?.filter(
-            (article) => article.status === "submitted"
+            (article) => article.status === "draft"
           ).length || 0;
-
+        const ChangesRequested =
+          articles?.filter(
+            (article) => article.status === "changes_requested"
+          ).length || 0;
         const underReview =
           articles?.filter(
             (article) => article.status === "under_review"
@@ -90,7 +95,10 @@ export default function AuthorDashboard() {
           articles?.filter(
             (article) => article.status === "published"
           ).length || 0;
-
+        const Approved = 
+          articles?.filter(
+            (article) => article.status === "approved"
+          ).length || 0;
         const rejected =
           articles?.filter(
             (article) => article.status === "rejected"
@@ -98,8 +106,8 @@ export default function AuthorDashboard() {
 
         setStats([
           {
-            label: "Submitted",
-            value: submitted.toString(),
+            label: "Draft",
+            value: draft.toString(),
             icon: "📤",
           },
           {
@@ -107,9 +115,20 @@ export default function AuthorDashboard() {
             value: underReview.toString(),
             icon: "🔍",
           },
+          
+          {
+            label: "Changes Requested",
+            value: ChangesRequested.toString(),
+            icon: "✏️",
+          },
           {
             label: "Published",
             value: published.toString(),
+            icon: "✅",
+          },
+          {
+            label: "Approved",
+            value: Approved.toString(),
             icon: "✅",
           },
           {
