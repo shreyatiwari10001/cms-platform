@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -22,19 +23,34 @@ export default function RegisterPage() {
 
     if (user) {
       const { error: profileError } = await supabase
-        .from("profiles")
-        .insert([
-          {
-            id: user.id,
-            email: user.email,
-            role: "user",
-          },
-        ]);
+  .from("profiles")
+  .insert([
+    {
+      id: user.id,
+      email: user.email,
+      full_name: fullName,
+      role: "user",
+    },
+  ]);
 
       if (profileError) {
         alert(profileError.message);
         return;
       }
+      if (!fullName.trim()) {
+  alert("Please enter your full name");
+  return;
+}
+
+if (!email.trim()) {
+  alert("Please enter your email");
+  return;
+}
+
+if (!password.trim()) {
+  alert("Please enter your password");
+  return;
+}
     }
 
     alert("Registration successful!");
@@ -59,6 +75,13 @@ export default function RegisterPage() {
 
         <div className="space-y-4">
           <input
+  type="text"
+  placeholder="Enter your full name"
+  value={fullName}
+  onChange={(e) => setFullName(e.target.value)}
+  className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
+/>
+<input
   type="email"
   placeholder="Enter your email"
   value={email}
@@ -84,7 +107,9 @@ export default function RegisterPage() {
         <p className="text-center mt-6 text-slate-500">
           Already have an account?
           
-          <Link href="/login">
+          <Link href="/login"
+          className="text-blue-700 font-medium hover:underline ml-1"
+          >
             Login
           </Link>
           
