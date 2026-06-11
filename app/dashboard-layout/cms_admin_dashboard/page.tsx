@@ -55,17 +55,18 @@ export default function CMSAdminDashboard() {
           </Link>
 
           <Link
+            href="/dashboard-layout/cms_admin_dashboard/content"
+            className="block bg-purple-600 text-white p-3 rounded-lg text-center"
+          >
+            CMS Content
+          </Link>
+
+          <Link
             href="/manage_user"
-            className="block bg-slate-100 p-3 rounded-lg text-center"
+            className="block bg-slate-100 text-slate-700 p-3 rounded-lg text-center"
           >
             Manage Users
           </Link>
-          <button
-  onClick={() => router.push("/dashboard-layout/cms_admin_dashboard/review-articles")}
-  className="bg-purple-600 text-white px-4 py-2 rounded-lg"
->
-  Manage Articles
-</button>
         </div>
       </div>
     </main>
