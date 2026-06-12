@@ -1,0 +1,10 @@
+[33m4669b61[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Phase 5 complete - CMS content types, CRUD operations
+[33m3b2ff04[m Phase 4 complete - unified review dashboard, version history, RLS fixes
+[33me91396d[m Phase 3 done
+[33m39cf76c[m Phase 2 complete - auth, author flow, admin review
+[33mc8861de[m Fixed draft workflow for Phase 2
+[33m6cf7678[m updated phase 2
+[33m8bcd7fd[m Completed Phase 2 author content management
+[33md4afac0[m Completed Phase 2 article management features
+[33mcfc0053[m Complete Phase 1 authentication and author access workflow
+[33m498d686[m Add author access request workflow

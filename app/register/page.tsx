@@ -7,14 +7,36 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
+    // ✅ Validation pehle
+    if (!fullName.trim()) {
+      alert("Please enter your full name");
+      return;
+    }
+    if (!email.trim()) {
+      alert("Please enter your email");
+      return;
+    }
+    if (!password.trim()) {
+      alert("Please enter your password");
+      return;
+    }
+    if (password.length < 6) {
+      alert("Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
 
     if (error) {
+      setLoading(false);
       alert(error.message);
       return;
     }
@@ -23,37 +45,25 @@ export default function RegisterPage() {
 
     if (user) {
       const { error: profileError } = await supabase
-  .from("profiles")
-  .insert([
-    {
-      id: user.id,
-      email: user.email,
-      full_name: fullName,
-      role: "user",
-    },
-  ]);
+        .from("profiles")
+        .insert([
+          {
+            id: user.id,
+            email: user.email,
+            full_name: fullName,
+            role: "user",
+          },
+        ]);
 
       if (profileError) {
+        setLoading(false);
         alert(profileError.message);
         return;
       }
-      if (!fullName.trim()) {
-  alert("Please enter your full name");
-  return;
-}
-
-if (!email.trim()) {
-  alert("Please enter your email");
-  return;
-}
-
-if (!password.trim()) {
-  alert("Please enter your password");
-  return;
-}
     }
 
-    alert("Registration successful!");
+    setLoading(false);
+    alert("Registration successful! Please login.");
   };
 
   return (
@@ -63,11 +73,9 @@ if (!password.trim()) {
           <h1 className="text-4xl font-bold text-blue-900">
             CMS Platform
           </h1>
-
           <p className="text-blue-600 italic mt-2">
             Research Publishing System
           </p>
-
           <p className="text-slate-500 mt-4">
             Create your account
           </p>
@@ -75,44 +83,43 @@ if (!password.trim()) {
 
         <div className="space-y-4">
           <input
-  type="text"
-  placeholder="Enter your full name"
-  value={fullName}
-  onChange={(e) => setFullName(e.target.value)}
-  className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
-/>
-<input
-  type="email"
-  placeholder="Enter your email"
-  value={email}
-  onChange={(e) => setEmail(e.target.value)}
-  className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
-/>
-
-<input
-  type="password"
-  placeholder="Enter your password"
-  value={password}
-  onChange={(e) => setPassword(e.target.value)}
-  className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
-/>
+            type="text"
+            placeholder="Enter your full name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
+          />
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
+          />
+          <input
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full h-14 px-4 text-lg rounded-lg bg-white border border-slate-300 text-black"
+          />
           <button
             onClick={handleRegister}
-            className="w-full bg-blue-700 hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition"
+            disabled={loading}
+            className="w-full bg-blue-700 hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition disabled:opacity-50"
           >
-            Register
+            {loading ? "Registering..." : "Register"}
           </button>
         </div>
 
         <p className="text-center mt-6 text-slate-500">
           Already have an account?
-          
-          <Link href="/login"
-          className="text-blue-700 font-medium hover:underline ml-1"
+          <Link
+            href="/login"
+            className="text-blue-700 font-medium hover:underline ml-1"
           >
             Login
           </Link>
-          
         </p>
       </div>
     </main>
