@@ -33,6 +33,7 @@ type Article = {
 export default function MyArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
 
   useEffect(() => {
     async function loadArticles() {
@@ -74,7 +75,6 @@ export default function MyArticlesPage() {
     const confirmed = window.confirm(
       "Are you sure you want to delete this article?"
     );
-
     if (!confirmed) return;
 
     try {
@@ -100,14 +100,13 @@ export default function MyArticlesPage() {
     const confirmed = window.confirm(
       "Are you sure you want to submit this article for review?"
     );
-
     if (!confirmed) return;
 
     try {
       const { error } = await supabase
         .from("research_articles")
         .update({
-          status: "under_review",
+          status: "submitted",
           updated_at: new Date().toISOString(),
         })
         .eq("id", id);
@@ -117,7 +116,6 @@ export default function MyArticlesPage() {
         return;
       }
 
-      // UI mein bhi update karo
       setArticles((prev) =>
         prev.map((article) =>
           article.id === id
@@ -164,9 +162,7 @@ export default function MyArticlesPage() {
     <main className="min-h-screen bg-blue-50 p-8">
       <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-blue-900">
-            My Articles
-          </h1>
+          <h1 className="text-3xl font-bold text-blue-900">My Articles</h1>
         </div>
 
         {articles.length === 0 ? (
@@ -195,33 +191,31 @@ export default function MyArticlesPage() {
                     </h2>
 
                     {article.subtitle && (
-                      <p className="text-gray-500 mt-1">
-                        {article.subtitle}
-                      </p>
+                      <p className="text-gray-500 mt-1">{article.subtitle}</p>
                     )}
 
                     <div className="mt-3">
-  <span
-    className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-      article.status
-    )}`}
-  >
-    {article.status.replace("_", " ")}
-  </span>
-</div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          article.status
+                        )}`}
+                      >
+                        {article.status.replace("_", " ")}
+                      </span>
+                    </div>
 
-{article.status === "changes_requested" && (
-  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-    <p className="text-orange-700 font-medium">
-      ⚠️ Admin requested changes. Please update and resubmit.
-    </p>
-  </div>
-)}
+                    {article.status === "changes_requested" && (
+                      <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p className="text-orange-700 font-medium">
+                          ⚠️ Admin requested changes. Please update and
+                          resubmit.
+                        </p>
+                      </div>
+                    )}
 
-<p className="text-sm text-gray-500 mt-3">
-  Created:{" "}
-  {new Date(article.created_at).toLocaleString()}
-</p>
+                    <p className="text-sm text-gray-500 mt-3">
+                      Created: {new Date(article.created_at).toLocaleString()}
+                    </p>
 
                     {article.updated_at && (
                       <p className="text-sm text-gray-500 mt-1">
@@ -232,19 +226,27 @@ export default function MyArticlesPage() {
                   </div>
 
                   <div className="flex gap-2 flex-wrap">
-                    {/* Edit — sirf draft aur changes requested pe */}
-                    {(article.status === "draft" ||
-  article.status === "changes_requested") && (
-  <Link
-    href={`/dashboard-layout/author_dashboard/edit-article/${article.id}`}
-  >
-    <button className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
-      Edit
-    </button>
-  </Link>
-)}
+                    {/* Preview — hamesha dikhega */}
+                    <button
+                      onClick={() => setPreviewArticle(article)}
+                      className="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg"
+                    >
+                      Preview
+                    </button>
 
-                    {/* Submit — sirf draft pe */}
+                    {/* Edit */}
+                    {(article.status === "draft" ||
+                      article.status === "changes_requested") && (
+                      <Link
+                        href={`/dashboard-layout/author_dashboard/edit-article/${article.id}`}
+                      >
+                        <button className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                          Edit
+                        </button>
+                      </Link>
+                    )}
+
+                    {/* Submit */}
                     {article.status === "draft" && (
                       <button
                         onClick={() => submitArticle(article.id)}
@@ -254,7 +256,7 @@ export default function MyArticlesPage() {
                       </button>
                     )}
 
-                    {/* Delete — sirf draft pe */}
+                    {/* Delete */}
                     {article.status === "draft" && (
                       <button
                         onClick={() => deleteArticle(article.id)}
@@ -270,6 +272,112 @@ export default function MyArticlesPage() {
           </div>
         )}
       </div>
+
+      {/* Preview Modal */}
+      {previewArticle && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+          onClick={() => setPreviewArticle(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b px-8 py-4 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-blue-900">
+                Article Preview
+              </h2>
+              <button
+                onClick={() => setPreviewArticle(null)}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Article Content */}
+            <div className="px-8 py-6 space-y-6">
+              {/* Title */}
+              <div>
+                <h1 className="text-3xl font-bold text-blue-900">
+                  {previewArticle.title}
+                </h1>
+                {previewArticle.subtitle && (
+                  <p className="text-gray-500 mt-2 text-lg">
+                    {previewArticle.subtitle}
+                  </p>
+                )}
+                <div className="mt-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                      previewArticle.status
+                    )}`}
+                  >
+                    {previewArticle.status.replace("_", " ")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Keywords */}
+              {previewArticle.keywords && (
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-blue-700 mb-1">
+                    Keywords
+                  </p>
+                  <p className="text-slate-700">{previewArticle.keywords}</p>
+                </div>
+              )}
+
+              {/* Sections */}
+              {[
+                { label: "Abstract", value: previewArticle.abstract },
+                { label: "Introduction", value: previewArticle.introduction },
+                { label: "Methods", value: previewArticle.methods },
+                { label: "Results", value: previewArticle.results },
+                { label: "Discussion", value: previewArticle.discussion },
+                { label: "Conclusion", value: previewArticle.conclusion },
+                { label: "Funding", value: previewArticle.funding },
+                {
+                  label: "Ethics Statement",
+                  value: previewArticle.ethics_statement,
+                },
+                {
+                  label: "Acknowledgements",
+                  value: previewArticle.acknowledgements,
+                },
+              ].map(
+                ({ label, value }) =>
+                  value && (
+                    <div key={label} className="border-t pt-4">
+                      <h3 className="text-lg font-bold text-blue-900 mb-2">
+                        {label}
+                      </h3>
+                      <div
+                        className="prose max-w-none text-slate-700"
+                        dangerouslySetInnerHTML={{ __html: value }}
+                      />
+                    </div>
+                  )
+              )}
+
+              {/* Timestamps */}
+              <div className="border-t pt-4 text-sm text-gray-400">
+                <p>
+                  Created:{" "}
+                  {new Date(previewArticle.created_at).toLocaleString()}
+                </p>
+                {previewArticle.updated_at && (
+                  <p>
+                    Updated:{" "}
+                    {new Date(previewArticle.updated_at).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
