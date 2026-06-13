@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUserRole } from "@/lib/auth";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const CONTENT_TYPES = ["blog", "news", "event", "faq", "campaign", "testimonials"];
 
@@ -50,7 +51,6 @@ export default function CreateContentPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Max 5MB check
     if (file.size > 5 * 1024 * 1024) {
       alert("File size must be less than 5MB");
       return;
@@ -87,7 +87,7 @@ export default function CreateContentPage() {
       alert("Slug is required");
       return;
     }
-    if (!content.trim()) {
+    if (!content.trim() || content === "<p></p>") {
       alert("Content is required");
       return;
     }
@@ -209,17 +209,14 @@ export default function CreateContentPage() {
             </p>
           </div>
 
-          {/* Content */}
+          {/* Content — Rich Text Editor */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Content *
             </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your content here..."
-              rows={10}
-              className="w-full p-3 border border-slate-300 rounded-lg"
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
             />
           </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getCurrentUserRole } from "@/lib/auth";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const CONTENT_TYPES = ["blog", "news", "event", "faq", "campaign", "testimonials"];
 
@@ -14,6 +15,7 @@ export default function EditContentPage() {
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   const [contentType, setContentType] = useState("blog");
   const [title, setTitle] = useState("");
@@ -74,6 +76,37 @@ export default function EditContentPage() {
     setSlug(generatedSlug);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/upload-file", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    setUploading(false);
+
+    if (!response.ok) {
+      alert("Upload failed: " + result.error);
+      return;
+    }
+
+    setFeaturedImage(result.url);
+    alert("✅ Image uploaded successfully!");
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       alert("Title is required");
@@ -83,7 +116,7 @@ export default function EditContentPage() {
       alert("Slug is required");
       return;
     }
-    if (!content.trim()) {
+    if (!content.trim() || content === "<p></p>") {
       alert("Content is required");
       return;
     }
@@ -207,17 +240,14 @@ export default function EditContentPage() {
             </p>
           </div>
 
-          {/* Content */}
+          {/* Content — Rich Text Editor */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Content *
             </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your content here..."
-              rows={10}
-              className="w-full p-3 border border-slate-300 rounded-lg"
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
             />
           </div>
 
@@ -252,18 +282,41 @@ export default function EditContentPage() {
             </p>
           </div>
 
-          {/* Featured Image URL */}
+          {/* Featured Image */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Featured Image URL
+              Featured Image
             </label>
-            <input
-              type="text"
-              value={featuredImage}
-              onChange={(e) => setFeaturedImage(e.target.value)}
-              placeholder="https://..."
-              className="w-full p-3 border border-slate-300 rounded-lg"
-            />
+            <div className="space-y-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="w-full p-3 border border-slate-300 rounded-lg"
+              />
+              {uploading && (
+                <p className="text-sm text-blue-600">Uploading...</p>
+              )}
+              {featuredImage && (
+                <div>
+                  <img
+                    src={featuredImage}
+                    alt="Featured"
+                    className="w-full max-h-48 object-cover rounded-lg mt-2"
+                  />
+                  <p className="text-xs text-gray-400 mt-1 break-all">
+                    {featuredImage}
+                  </p>
+                  <button
+                    onClick={() => setFeaturedImage("")}
+                    className="mt-2 text-red-500 text-sm hover:underline"
+                  >
+                    Remove Image
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* SEO */}
@@ -332,7 +385,7 @@ export default function EditContentPage() {
           <div className="pt-4 border-t">
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || uploading}
               className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
             >
               {saving ? "Saving..." : "Update Content"}
