@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserRole } from "@/lib/auth";
+import RichTextEditor from "@/components/RichTextEditor";
 
 export default function CreateArticlePage() {
   const router = useRouter();
@@ -85,54 +86,9 @@ export default function CreateArticlePage() {
 
     setSaving(false);
     alert("Draft saved successfully!");
+    router.push("/dashboard-layout/author_dashboard/my-articles");
   };
-  const handleSubmitReview = async () => {
-  if (!title.trim()) {
-    alert("Article title is required");
-    return;
-  }
 
-  if (!abstract.trim()) {
-    alert("Abstract is required");
-    return;
-  }
-
-  setSaving(true);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { error } = await supabase
-    .from("research_articles")
-    .insert([
-      {
-        user_id: user?.id,
-        title,
-        subtitle,
-        abstract,
-        keywords,
-        introduction,
-        methods,
-        results,
-        discussion,
-        conclusion,
-        funding,
-        ethics_statement: ethicsStatement,
-        acknowledgements,
-        status: "under_review",
-      },
-    ]);
-
-  setSaving(false);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert("Article submitted for review");
-};
   if (checkingAccess) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -147,82 +103,137 @@ export default function CreateArticlePage() {
         <h1 className="text-3xl font-bold text-blue-900 mb-6">
           Create Research Article
         </h1>
-        <div className="space-y-5">
-          <input
-            type="text"
-            placeholder="Article Title"
-            className="w-full p-3 border border-slate-300 rounded-lg"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Subtitle"
-            className="w-full p-3 border border-slate-300 rounded-lg"
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-          />
-          <textarea
-            placeholder="Abstract"
-            className="w-full p-3 border border-slate-300 rounded-lg h-32"
-            value={abstract}
-            onChange={(e) => setAbstract(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Keywords (comma separated)"
-            className="w-full p-3 border border-slate-300 rounded-lg"
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
-          />
-          <textarea
-            placeholder="Introduction"
-            className="w-full p-3 border border-slate-300 rounded-lg h-40"
-            value={introduction}
-            onChange={(e) => setIntroduction(e.target.value)}
-          />
-          <textarea
-            placeholder="Methods"
-            className="w-full p-3 border border-slate-300 rounded-lg h-40"
-            value={methods}
-            onChange={(e) => setMethods(e.target.value)}
-          />
-          <textarea
-            placeholder="Results"
-            className="w-full p-3 border border-slate-300 rounded-lg h-40"
-            value={results}
-            onChange={(e) => setResults(e.target.value)}
-          />
-          <textarea
-            placeholder="Discussion"
-            className="w-full p-3 border border-slate-300 rounded-lg h-40"
-            value={discussion}
-            onChange={(e) => setDiscussion(e.target.value)}
-          />
-          <textarea
-            placeholder="Conclusion"
-            className="w-full p-3 border border-slate-300 rounded-lg h-40"
-            value={conclusion}
-            onChange={(e) => setConclusion(e.target.value)}
-          />
-          <textarea
-            placeholder="Funding"
-            className="w-full p-3 border border-slate-300 rounded-lg h-32"
-            value={funding}
-            onChange={(e) => setFunding(e.target.value)}
-          />
-          <textarea
-            placeholder="Ethics Statement"
-            className="w-full p-3 border border-slate-300 rounded-lg h-32"
-            value={ethicsStatement}
-            onChange={(e) => setEthicsStatement(e.target.value)}
-          />
-          <textarea
-            placeholder="Acknowledgements"
-            className="w-full p-3 border border-slate-300 rounded-lg h-32"
-            value={acknowledgements}
-            onChange={(e) => setAcknowledgements(e.target.value)}
-          />
+        <div className="space-y-6">
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Article Title *
+            </label>
+            <input
+              type="text"
+              placeholder="Article Title"
+              className="w-full p-3 border border-slate-300 rounded-lg"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Subtitle
+            </label>
+            <input
+              type="text"
+              placeholder="Subtitle"
+              className="w-full p-3 border border-slate-300 rounded-lg"
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Abstract *
+            </label>
+            <RichTextEditor
+              content={abstract}
+              onChange={setAbstract}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Keywords
+            </label>
+            <input
+              type="text"
+              placeholder="Keywords (comma separated)"
+              className="w-full p-3 border border-slate-300 rounded-lg"
+              value={keywords}
+              onChange={(e) => setKeywords(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Introduction
+            </label>
+            <RichTextEditor
+              content={introduction}
+              onChange={setIntroduction}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Methods
+            </label>
+            <RichTextEditor
+              content={methods}
+              onChange={setMethods}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Results
+            </label>
+            <RichTextEditor
+              content={results}
+              onChange={setResults}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Discussion
+            </label>
+            <RichTextEditor
+              content={discussion}
+              onChange={setDiscussion}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Conclusion
+            </label>
+            <RichTextEditor
+              content={conclusion}
+              onChange={setConclusion}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Funding
+            </label>
+            <RichTextEditor
+              content={funding}
+              onChange={setFunding}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Ethics Statement
+            </label>
+            <RichTextEditor
+              content={ethicsStatement}
+              onChange={setEthicsStatement}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Acknowledgements
+            </label>
+            <RichTextEditor
+              content={acknowledgements}
+              onChange={setAcknowledgements}
+            />
+          </div>
+
           <button
             onClick={handleSaveDraft}
             disabled={saving}
@@ -230,13 +241,6 @@ export default function CreateArticlePage() {
           >
             {saving ? "Saving..." : "Save Draft"}
           </button>
-          <button
-  onClick={handleSubmitReview}
-  disabled={saving}
-  className="w-full bg-green-600 text-white py-3 rounded-lg"
->
-  Submit For Review
-</button>
         </div>
       </div>
     </main>
